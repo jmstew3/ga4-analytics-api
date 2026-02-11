@@ -1,0 +1,4 @@
+google-analytics-data==0.20.0
+google-auth==2.48.0
+google-auth-oauthlib==1.2.4
+pydantic-settings==2.12.0

@@ -1,0 +1,20 @@
+services:
+  ga4-report:
+    build: .
+    env_file: .env
+    volumes:
+      - ./credentials/token.json:/app/credentials/token.json
+      - ./output:/app/output
+    restart: "no"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.5"

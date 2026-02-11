@@ -1,0 +1,28 @@
+# Credentials and secrets
+credentials/
+!credentials/.gitkeep
+.env
+client_secret.json
+token.json
+
+# Legacy insecure token files (should not exist)
+*.pkl
+*.pickle
+token.pickle
+
+# Output
+output/
+!output/.gitkeep
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/

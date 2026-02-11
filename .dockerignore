@@ -1,0 +1,9 @@
+.env
+credentials/
+output/
+scripts/
+.git/
+.gitignore
+.vscode/
+__pycache__/
+*.md

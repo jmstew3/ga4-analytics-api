@@ -18,3 +18,28 @@ services:
         limits:
           memory: 256M
           cpus: "0.5"
+
+  ga4-batch:
+    build: .
+    environment:
+      - BATCH_CONFIG_PATH=/app/batch_config.json
+      - GA4_TOKEN_PATH=/app/credentials/token.json
+      - GA4_OUTPUT_DIR=/app/output
+    entrypoint: ["python", "-m", "app.batch"]
+    volumes:
+      - ./credentials/token.json:/app/credentials/token.json
+      - ./output:/app/output
+      - ./batch_config.json:/app/batch_config.json:ro
+    restart: "no"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "1.0"

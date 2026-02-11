@@ -1,0 +1,191 @@
+{
+  "date_ranges": [
+    {
+      "label": "FY2024",
+      "start_date": "2024-01-01",
+      "end_date": "2024-12-31"
+    },
+    {
+      "label": "FY2025",
+      "start_date": "2025-01-01",
+      "end_date": "2025-12-31"
+    },
+    {
+      "label": "Jan2025",
+      "start_date": "2025-01-01",
+      "end_date": "2025-01-31"
+    },
+    {
+      "label": "Jan2026",
+      "start_date": "2026-01-01",
+      "end_date": "2026-01-31"
+    }
+  ],
+  "reports": [
+    {
+      "name": "overview_metrics",
+      "dimensions": [],
+      "metrics": [
+        "totalUsers",
+        "newUsers",
+        "sessions",
+        "screenPageViews",
+        "engagementRate",
+        "averageSessionDuration",
+        "engagedSessions",
+        "eventCount",
+        "screenPageViewsPerSession"
+      ]
+    },
+    {
+      "name": "conversion_metrics",
+      "dimensions": [],
+      "metrics": [
+        "conversions",
+        "userConversionRate",
+        "sessionConversionRate"
+      ]
+    },
+    {
+      "name": "channel_sessions",
+      "dimensions": [
+        "sessionDefaultChannelGrouping"
+      ],
+      "metrics": [
+        "sessions",
+        "totalUsers",
+        "conversions",
+        "engagementRate"
+      ]
+    },
+    {
+      "name": "source_medium",
+      "dimensions": [
+        "sessionSource",
+        "sessionMedium"
+      ],
+      "metrics": [
+        "sessions",
+        "totalUsers",
+        "conversions"
+      ]
+    },
+    {
+      "name": "referral_sources",
+      "dimensions": [
+        "sessionSource"
+      ],
+      "metrics": [
+        "sessions",
+        "totalUsers"
+      ],
+      "dimension_filter": {
+        "field": "sessionDefaultChannelGrouping",
+        "match_type": "EXACT",
+        "value": "Referral"
+      }
+    }
+  ],
+  "brands": [
+    {
+      "name": "Anthony",
+      "account_id": "266746707",
+      "property_id": "373485153"
+    },
+    {
+      "name": "Anytime Plumbing, Heating & Cooling",
+      "account_id": "48850300",
+      "property_id": "297219515"
+    },
+    {
+      "name": "Apollo Home",
+      "account_id": "11121287",
+      "property_id": "361108781"
+    },
+    {
+      "name": "Arctic Air Conditioning",
+      "account_id": "12778303",
+      "property_id": "353108280"
+    },
+    {
+      "name": "Aztec Plumbing",
+      "account_id": "",
+      "property_id": "261931913"
+    },
+    {
+      "name": "Bell Brothers",
+      "account_id": "262504860",
+      "property_id": "361706527"
+    },
+    {
+      "name": "Black Hills Inc",
+      "account_id": "26334622",
+      "property_id": "383262078"
+    },
+    {
+      "name": "Campbell and Company",
+      "account_id": "79041634",
+      "property_id": "319229254"
+    },
+    {
+      "name": "Cassell Brothers",
+      "account_id": "104694076",
+      "property_id": "361657600"
+    },
+    {
+      "name": "Charles Stone Mechanical",
+      "account_id": "282662324",
+      "property_id": "403757637"
+    },
+    {
+      "name": "Dauenhauer Plumbing",
+      "account_id": "39227647",
+      "property_id": "358767034"
+    },
+    {
+      "name": "Fayette Heating & Air",
+      "account_id": "262795854",
+      "property_id": "362082264"
+    },
+    {
+      "name": "GAC Services",
+      "account_id": "225046204",
+      "property_id": "309938017"
+    },
+    {
+      "name": "Hunter Super Techs",
+      "account_id": "128111953",
+      "property_id": "373521093"
+    },
+    {
+      "name": "LimRic",
+      "account_id": "41647660",
+      "property_id": "361717928"
+    },
+    {
+      "name": "Reliable Power Systems",
+      "account_id": "136778128",
+      "property_id": "361692839"
+    },
+    {
+      "name": "Roth Home",
+      "account_id": "22410142",
+      "property_id": "325174168"
+    },
+    {
+      "name": "Schaal Plumbing, Heating & Cooling",
+      "account_id": "221125071",
+      "property_id": "361659621"
+    },
+    {
+      "name": "Sunny Service",
+      "account_id": "172082855",
+      "property_id": "361722376"
+    },
+    {
+      "name": "Webb HVAC",
+      "account_id": "221618161",
+      "property_id": "361711756"
+    }
+  ]
+}

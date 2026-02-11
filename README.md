@@ -8,19 +8,27 @@ The application runs in two phases:
 
 1. **Authenticate (host machine)** — A one-time OAuth2 browser flow (`scripts/authenticate.py`) opens your browser, has you sign in with Google, and saves the resulting token to `credentials/token.json`.
 
-2. **Run report (Docker container)** — The container mounts that token file, reads your configuration from environment variables, queries the GA4 Data API for the requested dimensions/metrics over a date range, and writes a timestamped CSV to the `output/` directory.
+2. **Run reports (Docker container)** — Two modes are available:
+   - **Single report** — Query one GA4 property for a single date range. Configured via `.env`.
+   - **Batch report** — Query multiple brands, date ranges, and report types in one run. Configured via `batch_config.json`.
 
 ### Architecture
 
 ```
 scripts/authenticate.py   →  credentials/token.json  (one-time, runs on host)
 
-docker compose run ga4-report
+docker compose run ga4-report          (single property)
   app/config.py            →  Load & validate env vars (Pydantic)
   app/auth.py              →  Load token, auto-refresh if expired
   app/report.py            →  Query GA4 Data API (BetaAnalyticsDataClient)
   app/export.py            →  Write results to timestamped CSV
   app/main.py              →  Orchestrates the above pipeline
+
+docker compose run ga4-batch           (multi-brand portfolio)
+  app/batch.py             →  Load batch_config.json, loop brands × dates × reports
+  app/auth.py              →  Load token, auto-refresh if expired
+  app/report.py            →  Query GA4 Data API (reused from single mode)
+  output/batch/            →  One CSV per report type, timestamped
 ```
 
 ## Prerequisites
@@ -93,16 +101,69 @@ For available dimensions and metrics, see the [GA4 API schema](https://developer
 
 ### 4. Run
 
+There are two ways to pull reports: **single** (one property, one date range) and **batch** (many brands, date ranges, and report types at once).
+
+#### Option A: Single Report
+
+Uses the `.env` file for configuration. Good for quick, ad-hoc pulls from a single GA4 property.
+
 ```bash
 docker compose run ga4-report
 ```
 
 The CSV appears in `output/`, named like `ga4_report_20260211_183045.csv`.
 
+#### Option B: Batch Report
+
+Uses `batch_config.json` for configuration. Runs every combination of brand × date range × report type and writes one CSV per report type to `output/batch/`.
+
+1. Edit `batch_config.json` to define your brands, date ranges, and reports:
+
+```jsonc
+{
+  "date_ranges": [
+    { "label": "FY2025", "start_date": "2025-01-01", "end_date": "2025-12-31" },
+    { "label": "Jan2026", "start_date": "2026-01-01", "end_date": "2026-01-31" }
+  ],
+  "reports": [
+    {
+      "name": "overview_metrics",
+      "dimensions": [],
+      "metrics": ["totalUsers", "sessions", "engagementRate"]
+    },
+    {
+      "name": "channel_sessions",
+      "dimensions": ["sessionDefaultChannelGrouping"],
+      "metrics": ["sessions", "totalUsers", "conversions"],
+      "dimension_filter": {                          // optional
+        "field": "sessionDefaultChannelGrouping",
+        "match_type": "EXACT",
+        "value": "Referral"
+      }
+    }
+  ],
+  "brands": [
+    { "name": "Acme Corp", "account_id": "123456", "property_id": "789012345" }
+  ]
+}
+```
+
+2. Run the batch:
+
+```bash
+docker compose run ga4-batch
+```
+
+CSVs appear in `output/batch/`, one per report type (e.g. `overview_metrics_20260211_201353.csv`). Each row includes `brand_name`, `property_id`, and `period` columns so all brands are in one file.
+
+The batch service has higher resource limits (512 MB / 1 CPU) and includes a 1-second delay between API calls to respect GA4 quotas.
+
+#### Rebuilding
+
 To rebuild after code changes:
 
 ```bash
-docker compose build && docker compose run ga4-report
+docker compose build && docker compose run ga4-report   # or ga4-batch
 ```
 
 ## Project Structure
@@ -111,10 +172,11 @@ docker compose build && docker compose run ga4-report
 .
 ├── app/
 │   ├── __init__.py
-│   ├── main.py          # Entrypoint — orchestrates config, auth, query, export
+│   ├── main.py          # Single-report entrypoint — config, auth, query, export
+│   ├── batch.py         # Batch-report entrypoint — multi-brand portfolio runner
 │   ├── config.py         # Pydantic settings with env var validation
 │   ├── auth.py           # OAuth2 credential loading and token refresh
-│   ├── report.py         # GA4 Data API query execution
+│   ├── report.py         # GA4 Data API query execution (shared by both modes)
 │   └── export.py         # Timestamped CSV export
 ├── credentials/          # OAuth files (gitignored)
 │   └── .gitkeep
@@ -122,7 +184,8 @@ docker compose build && docker compose run ga4-report
 │   └── .gitkeep
 ├── scripts/
 │   └── authenticate.py   # One-time host-side OAuth browser flow
-├── .env.example          # Environment variable template
+├── batch_config.json     # Batch mode configuration (brands, date ranges, reports)
+├── .env.example          # Environment variable template (single mode)
 ├── docker-compose.yml
 ├── Dockerfile
 └── requirements.txt
@@ -136,7 +199,7 @@ The Docker setup follows a hardened configuration:
 - **Read-only filesystem** with a tmpfs for `/tmp`
 - **All Linux capabilities dropped**
 - **`no-new-privileges`** security option
-- **Resource limits**: 256 MB memory, 0.5 CPU
+- **Resource limits**: 256 MB / 0.5 CPU (single), 512 MB / 1 CPU (batch)
 - Token files are written with `0600` permissions (owner read/write only)
 - Credentials directory and `.env` are gitignored
 - Unsafe serialization formats (`.pkl`) are blocked via `.gitignore` — only JSON tokens are used
@@ -149,6 +212,7 @@ The Docker setup follows a hardened configuration:
 | `Configuration error` | Missing or invalid `GA4_PROPERTY_ID` | Check your `.env` file |
 | `Credentials are invalid and cannot be refreshed` | Expired refresh token or revoked access | Re-run `python scripts/authenticate.py` |
 | `GA4 query error` | Invalid dimensions/metrics or no API access | Verify dimension/metric names and that the GA4 Data API is enabled |
+| `No brands have property_id filled in` | All brands in `batch_config.json` still have placeholder IDs | Add real GA4 property IDs to the `brands` array |
 
 ## Dependencies
 

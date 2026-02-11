@@ -12,6 +12,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY app/ ./app/
+COPY batch_config.json .
 
 # Own the working directory
 RUN chown -R ga4user:ga4group /app

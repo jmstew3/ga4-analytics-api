@@ -51,7 +51,12 @@ def main() -> int:
     flow = InstalledAppFlow.from_client_secrets_file(
         args.client_secret, SCOPES
     )
-    creds = flow.run_local_server(port=0)
+    flow.redirect_uri = "http://localhost:8085/"
+    creds = flow.run_local_server(
+        port=8085,
+        access_type="offline",
+        prompt="consent",
+    )
 
     # Save as JSON (secure, data-only — no unsafe deserialization)
     token_data = {

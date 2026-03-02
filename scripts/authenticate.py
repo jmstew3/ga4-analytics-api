@@ -36,11 +36,21 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    if not os.path.exists(args.client_secret):
+    use_env_vars = False
+    if os.path.exists(args.client_secret):
+        print(f"Using client secret from {args.client_secret}")
+    elif os.environ.get("GA4_CLIENT_ID") and os.environ.get("GA4_CLIENT_SECRET"):
+        use_env_vars = True
+        print("Using credentials from GA4_CLIENT_ID / GA4_CLIENT_SECRET env vars")
+    else:
         print(
-            f"ERROR: Client secret not found at '{args.client_secret}'.\n"
-            "Download it from Google Cloud Console > APIs & Services > Credentials\n"
-            "and place it in the credentials/ directory.",
+            f"ERROR: Client secret not found at '{args.client_secret}'\n"
+            "and GA4_CLIENT_ID / GA4_CLIENT_SECRET env vars are not set.\n\n"
+            "Either:\n"
+            "  1. Download client_secret.json from Google Cloud Console\n"
+            "     and place it in the credentials/ directory, OR\n"
+            "  2. Set GA4_CLIENT_ID and GA4_CLIENT_SECRET in your .env file\n"
+            "     then run: set -a && source .env && set +a && python scripts/authenticate.py",
             file=sys.stderr,
         )
         return 1
@@ -48,9 +58,21 @@ def main() -> int:
     print("Starting OAuth authentication flow...")
     print("A browser window will open — sign in with your Google account.\n")
 
-    flow = InstalledAppFlow.from_client_secrets_file(
-        args.client_secret, SCOPES
-    )
+    if use_env_vars:
+        client_config = {
+            "installed": {
+                "client_id": os.environ["GA4_CLIENT_ID"],
+                "client_secret": os.environ["GA4_CLIENT_SECRET"],
+                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                "token_uri": "https://oauth2.googleapis.com/token",
+                "redirect_uris": ["http://localhost"],
+            }
+        }
+        flow = InstalledAppFlow.from_client_config(client_config, SCOPES)
+    else:
+        flow = InstalledAppFlow.from_client_secrets_file(
+            args.client_secret, SCOPES
+        )
     flow.redirect_uri = "http://localhost:8085/"
     creds = flow.run_local_server(
         port=8085,

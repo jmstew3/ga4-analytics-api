@@ -14,8 +14,9 @@ app/
   batch.py     — Multi-brand entrypoint (reads batch_config.json, loops brands x dates x reports)
 
 scripts/
-  authenticate.py  — Run on host (not Docker) to do OAuth browser flow -> credentials/token.json
+  authenticate.py    — Run on host (not Docker) to do OAuth browser flow -> credentials/token.json
   list_properties.py — Lists all GA4 property IDs via Admin API, outputs CSV to output/
+  import_csvs_to_db.py — Imports batch CSV output into Legitrix MySQL (upsert-safe)
 
 credentials/
   client_secret.json  — OAuth client secret (from Google Cloud Console, gitignored)
@@ -69,6 +70,78 @@ Output goes to `output/ga4_report_<timestamp>.csv`.
 docker compose run --rm ga4-batch
 ```
 Output goes to `output/batch/<report_name>_<timestamp>.csv` (one CSV per report type).
+
+## Importing CSVs to Database
+
+After a batch run, import the CSV results into the Legitrix MySQL database:
+
+```bash
+python scripts/import_csvs_to_db.py
+```
+
+This automatically picks up the latest batch directory under `output/batch/` and upserts into four tables:
+
+| Table | Content |
+|-------|---------|
+| `ga4_monthly_brand` | Overview + conversion metrics (1 row per brand/month) |
+| `ga4_monthly_channel` | Session breakdowns by channel grouping |
+| `ga4_monthly_source_medium` | Session breakdowns by source + medium |
+| `ga4_monthly_referral` | Session breakdowns by referral source |
+
+All tables use composite primary keys with `INSERT ... ON DUPLICATE KEY UPDATE`, so re-running is always safe — it overwrites with the latest values.
+
+To target a specific batch directory:
+```bash
+python scripts/import_csvs_to_db.py output/batch/20260302_021039/
+```
+
+**Prerequisites:** The `.env` file must have valid `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, and `DB_DATABASE` values pointing to the Legitrix MySQL instance. The `brand_google_channels` table must have `ga4_property_id` entries for each brand to resolve the property_id → brand_id mapping.
+
+### Database Schema
+
+All tables live in the `legitrix` database and use `utf8mb4` charset.
+
+**`ga4_monthly_brand`** — PK: `(brand_id, year, month)`
+
+| Column | Type | Description |
+|--------|------|-------------|
+| brand_id | INT | FK to brand_google_channels |
+| year, month | INT | Period |
+| total_users | INT | Total unique users |
+| new_users | INT | First-time users |
+| sessions | INT | Total sessions |
+| screen_page_views | INT | Total page views |
+| engagement_rate | DECIMAL(8,6) | Engaged sessions / total sessions |
+| avg_session_duration | DECIMAL(10,2) | Seconds |
+| engaged_sessions | INT | Sessions with engagement |
+| event_count | INT | Total events fired |
+| page_views_per_session | DECIMAL(8,4) | Avg page views per session |
+| conversions | INT | Total conversions |
+| user_conversion_rate | DECIMAL(8,6) | Conversions / users |
+| session_conversion_rate | DECIMAL(8,6) | Conversions / sessions |
+
+**`ga4_monthly_channel`** — PK: `(brand_id, year, month, channel_grouping)`
+
+| Column | Type | Description |
+|--------|------|-------------|
+| channel_grouping | VARCHAR(100) | e.g. Organic Search, Paid Search, Direct |
+| sessions, total_users, conversions | INT | Metrics per channel |
+| engagement_rate | DECIMAL(8,6) | Engagement rate per channel |
+
+**`ga4_monthly_source_medium`** — PK: `(brand_id, year, month, session_source, session_medium)`
+
+| Column | Type | Description |
+|--------|------|-------------|
+| session_source | VARCHAR(500) | e.g. google, facebook |
+| session_medium | VARCHAR(100) | e.g. organic, cpc, referral |
+| sessions, total_users, conversions | INT | Metrics per source/medium combo |
+
+**`ga4_monthly_referral`** — PK: `(brand_id, year, month, referral_source)`
+
+| Column | Type | Description |
+|--------|------|-------------|
+| referral_source | VARCHAR(500) | Referring domain |
+| sessions, total_users | INT | Metrics per referral source |
 
 ## Key Constraints
 
